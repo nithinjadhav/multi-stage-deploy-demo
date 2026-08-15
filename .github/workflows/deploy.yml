@@ -2,57 +2,102 @@ name: Multi-Stage Deployment Pipeline
 
 on:
     push:
-        branches: [main]
+        branches:
+            - dev
+            - qa
+            - stage
+            - prod
 
 jobs:
     build:
+        name: Validate and package build
         runs-on: ubuntu-latest
         steps:
-            - name: Checkout Code
+            - name: Checkout code
               uses: actions/checkout@v4
 
             - name: Run unit tests
               run: python -m unittest discover -s tests -v
 
-            - name: Build Application
+            - name: Build application
               run: |
                   mkdir -p build-output
-                  echo "Compiling code..." > build-output/app.txt
+                  echo "Compiling code for ${{ github.ref_name }}..." > build-output/app.txt
 
-            - name: Upload Build Artifact
+            - name: Upload build artifact
               uses: actions/upload-artifact@v4
               with:
-                  name: app-artifact
+                  name: app-artifact-${{ github.ref_name }}
                   path: build-output/
 
-    deploy-staging:
-        name: Deploy to Staging
+    deploy-dev:
+        name: Deploy to Dev
         needs: build
+        if: github.ref == 'refs/heads/dev'
         runs-on: ubuntu-latest
-        environment: staging
+        environment: dev
         steps:
-            - name: Download Build Artifact
+            - name: Download artifact
               uses: actions/download-artifact@v4
               with:
-                  name: app-artifact
+                  name: app-artifact-dev
 
-            - name: Deploy to Staging Environment
+            - name: Deploy to Dev environment
               run: |
-                  echo "Deploying to Staging using URL: ${{ vars.API_URL }}"
-                  echo "Using Staging Token: ${{ secrets.DEPLOY_TOKEN }}"
+                  echo "Deploying merged dev branch to Dev"
+                  echo "Using Dev URL: ${{ vars.API_URL }}"
+                  echo "Using Dev Token: ${{ secrets.DEPLOY_TOKEN }}"
 
-    deploy-production:
-        name: Deploy to Production
-        needs: deploy-staging
+    deploy-qa:
+        name: Deploy to QA
+        needs: build
+        if: github.ref == 'refs/heads/qa'
         runs-on: ubuntu-latest
-        environment: production
+        environment: qa
         steps:
-            - name: Download Build Artifact
+            - name: Download artifact
               uses: actions/download-artifact@v4
               with:
-                  name: app-artifact
+                  name: app-artifact-qa
 
-            - name: Deploy to Production Environment
+            - name: Deploy to QA environment
               run: |
-                  echo "Deploying to Production using URL: ${{ vars.API_URL }}"
-                  echo "Using Production Token: ${{ secrets.DEPLOY_TOKEN }}"
+                  echo "Deploying merged qa branch to QA"
+                  echo "Using QA URL: ${{ vars.API_URL }}"
+                  echo "Using QA Token: ${{ secrets.DEPLOY_TOKEN }}"
+
+    deploy-stage:
+        name: Deploy to Stage
+        needs: build
+        if: github.ref == 'refs/heads/stage'
+        runs-on: ubuntu-latest
+        environment: stage
+        steps:
+            - name: Download artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: app-artifact-stage
+
+            - name: Deploy to Stage environment
+              run: |
+                  echo "Deploying merged stage branch to Stage"
+                  echo "Using Stage URL: ${{ vars.API_URL }}"
+                  echo "Using Stage Token: ${{ secrets.DEPLOY_TOKEN }}"
+
+    deploy-prod:
+        name: Deploy to Prod
+        needs: build
+        if: github.ref == 'refs/heads/prod'
+        runs-on: ubuntu-latest
+        environment: prod
+        steps:
+            - name: Download artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: app-artifact-prod
+
+            - name: Deploy to Prod environment
+              run: |
+                  echo "Deploying merged prod branch to Prod"
+                  echo "Using Prod URL: ${{ vars.API_URL }}"
+                  echo "Using Prod Token: ${{ secrets.DEPLOY_TOKEN }}"
