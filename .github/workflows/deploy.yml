@@ -1,103 +1,166 @@
-name: Multi-Stage Deployment Pipeline
+name: Multi-Stage Branch Deployment Pipeline
 
 on:
     push:
         branches:
+            - main
             - dev
             - qa
             - stage
             - prod
 
 jobs:
-    build:
-        name: Validate and package build
+    promote-dev:
+        if: github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
         steps:
-            - name: Checkout code
+            - name: Checkout repo
               uses: actions/checkout@v4
-
-            - name: Run unit tests
-              run: python -m unittest discover -s tests -v
-
-            - name: Build application
-              run: |
-                  mkdir -p build-output
-                  echo "Compiling code for ${{ github.ref_name }}..." > build-output/app.txt
-
-            - name: Upload build artifact
-              uses: actions/upload-artifact@v4
               with:
-                  name: app-artifact-${{ github.ref_name }}
-                  path: build-output/
+                  fetch-depth: 0
+
+            - name: Merge main into dev
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git fetch origin
+                  git checkout dev
+                  git merge --no-edit origin/main
+                  git push origin dev
 
     deploy-dev:
-        name: Deploy to Dev
-        needs: build
         if: github.ref == 'refs/heads/dev'
+        needs: promote-dev
         runs-on: ubuntu-latest
         environment: dev
         steps:
-            - name: Download artifact
-              uses: actions/download-artifact@v4
+            - name: Checkout dev branch
+              uses: actions/checkout@v4
               with:
-                  name: app-artifact-dev
+                  ref: dev
 
-            - name: Deploy to Dev environment
+            - name: Run tests
+              run: python -m unittest discover -s tests -v
+
+            - name: Deploy to Dev
               run: |
-                  echo "Deploying merged dev branch to Dev"
+                  echo "Deploying merged changes to Dev branch"
                   echo "Using Dev URL: ${{ vars.API_URL }}"
                   echo "Using Dev Token: ${{ secrets.DEPLOY_TOKEN }}"
 
+    promote-qa:
+        if: github.ref == 'refs/heads/dev'
+        needs: deploy-dev
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Merge dev into qa
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git fetch origin
+                  git checkout qa
+                  git merge --no-edit origin/dev
+                  git push origin qa
+
     deploy-qa:
-        name: Deploy to QA
-        needs: build
         if: github.ref == 'refs/heads/qa'
+        needs: promote-qa
         runs-on: ubuntu-latest
         environment: qa
         steps:
-            - name: Download artifact
-              uses: actions/download-artifact@v4
+            - name: Checkout qa branch
+              uses: actions/checkout@v4
               with:
-                  name: app-artifact-qa
+                  ref: qa
 
-            - name: Deploy to QA environment
+            - name: Run tests
+              run: python -m unittest discover -s tests -v
+
+            - name: Deploy to QA
               run: |
-                  echo "Deploying merged qa branch to QA"
+                  echo "Deploying merged changes to QA branch"
                   echo "Using QA URL: ${{ vars.API_URL }}"
                   echo "Using QA Token: ${{ secrets.DEPLOY_TOKEN }}"
 
+    promote-stage:
+        if: github.ref == 'refs/heads/qa'
+        needs: deploy-qa
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Merge qa into stage
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git fetch origin
+                  git checkout stage
+                  git merge --no-edit origin/qa
+                  git push origin stage
+
     deploy-stage:
-        name: Deploy to Stage
-        needs: build
         if: github.ref == 'refs/heads/stage'
+        needs: promote-stage
         runs-on: ubuntu-latest
         environment: stage
         steps:
-            - name: Download artifact
-              uses: actions/download-artifact@v4
+            - name: Checkout stage branch
+              uses: actions/checkout@v4
               with:
-                  name: app-artifact-stage
+                  ref: stage
 
-            - name: Deploy to Stage environment
+            - name: Run tests
+              run: python -m unittest discover -s tests -v
+
+            - name: Deploy to Stage
               run: |
-                  echo "Deploying merged stage branch to Stage"
+                  echo "Deploying merged changes to Stage branch"
                   echo "Using Stage URL: ${{ vars.API_URL }}"
                   echo "Using Stage Token: ${{ secrets.DEPLOY_TOKEN }}"
 
+    promote-prod:
+        if: github.ref == 'refs/heads/stage'
+        needs: deploy-stage
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Merge stage into prod
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git fetch origin
+                  git checkout prod
+                  git merge --no-edit origin/stage
+                  git push origin prod
+
     deploy-prod:
-        name: Deploy to Prod
-        needs: build
         if: github.ref == 'refs/heads/prod'
+        needs: promote-prod
         runs-on: ubuntu-latest
         environment: prod
         steps:
-            - name: Download artifact
-              uses: actions/download-artifact@v4
+            - name: Checkout prod branch
+              uses: actions/checkout@v4
               with:
-                  name: app-artifact-prod
+                  ref: prod
 
-            - name: Deploy to Prod environment
+            - name: Run tests
+              run: python -m unittest discover -s tests -v
+
+            - name: Deploy to Prod
               run: |
-                  echo "Deploying merged prod branch to Prod"
+                  echo "Deploying merged changes to Prod branch"
                   echo "Using Prod URL: ${{ vars.API_URL }}"
                   echo "Using Prod Token: ${{ secrets.DEPLOY_TOKEN }}"
