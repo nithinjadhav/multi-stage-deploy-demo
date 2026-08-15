@@ -1,0 +1,58 @@
+name: Multi-Stage Deployment Pipeline
+
+on:
+    push:
+        branches: [main]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Run unit tests
+              run: python -m unittest discover -s tests -v
+
+            - name: Build Application
+              run: |
+                  mkdir -p build-output
+                  echo "Compiling code..." > build-output/app.txt
+
+            - name: Upload Build Artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: app-artifact
+                  path: build-output/
+
+    deploy-staging:
+        name: Deploy to Staging
+        needs: build
+        runs-on: ubuntu-latest
+        environment: staging
+        steps:
+            - name: Download Build Artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: app-artifact
+
+            - name: Deploy to Staging Environment
+              run: |
+                  echo "Deploying to Staging using URL: ${{ vars.API_URL }}"
+                  echo "Using Staging Token: ${{ secrets.DEPLOY_TOKEN }}"
+
+    deploy-production:
+        name: Deploy to Production
+        needs: deploy-staging
+        runs-on: ubuntu-latest
+        environment: production
+        steps:
+            - name: Download Build Artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: app-artifact
+
+            - name: Deploy to Production Environment
+              run: |
+                  echo "Deploying to Production using URL: ${{ vars.API_URL }}"
+                  echo "Using Production Token: ${{ secrets.DEPLOY_TOKEN }}"
