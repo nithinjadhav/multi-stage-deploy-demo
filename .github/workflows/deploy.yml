@@ -9,13 +9,16 @@ on:
             - stage
             - prod
 
+env:
+    ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
+
 jobs:
     promote-dev:
         if: github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
         steps:
             - name: Checkout repo
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   fetch-depth: 0
                   token: ${{ secrets.TOKEN_PAT }}
@@ -36,7 +39,7 @@ jobs:
         environment: dev
         steps:
             - name: Checkout dev branch
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   ref: dev
                   token: ${{ secrets.TOKEN_PAT }}
@@ -56,7 +59,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout repo
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   fetch-depth: 0
                   token: ${{ secrets.TOKEN_PAT }}
@@ -77,7 +80,7 @@ jobs:
         environment: qa
         steps:
             - name: Checkout qa branch
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   ref: qa
                   token: ${{ secrets.TOKEN_PAT }}
@@ -97,7 +100,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout repo
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   fetch-depth: 0
                   token: ${{ secrets.TOKEN_PAT }}
@@ -118,7 +121,7 @@ jobs:
         environment: stage
         steps:
             - name: Checkout stage branch
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   ref: stage
                   token: ${{ secrets.TOKEN_PAT }}
@@ -138,7 +141,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout repo
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   fetch-depth: 0
                   token: ${{ secrets.TOKEN_PAT }}
@@ -159,7 +162,7 @@ jobs:
         environment: prod
         steps:
             - name: Checkout prod branch
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   ref: prod
                   token: ${{ secrets.TOKEN_PAT }}
