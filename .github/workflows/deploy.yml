@@ -18,6 +18,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 0
+                  token: ${{ secrets.TOKEN_PAT }}
 
             - name: Merge main into dev
               run: |
@@ -38,6 +39,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                   ref: dev
+                  token: ${{ secrets.TOKEN_PAT }}
 
             - name: Run tests
               run: python -m unittest discover -s tests -v
@@ -57,6 +59,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 0
+                  token: ${{ secrets.TOKEN_PAT }}
 
             - name: Merge dev into qa
               run: |
@@ -77,6 +80,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                   ref: qa
+                  token: ${{ secrets.TOKEN_PAT }}
 
             - name: Run tests
               run: python -m unittest discover -s tests -v
@@ -96,6 +100,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 0
+                  token: ${{ secrets.TOKEN_PAT }}
 
             - name: Merge qa into stage
               run: |
@@ -116,6 +121,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                   ref: stage
+                  token: ${{ secrets.TOKEN_PAT }}
 
             - name: Run tests
               run: python -m unittest discover -s tests -v
@@ -135,6 +141,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 0
+                  token: ${{ secrets.TOKEN_PAT }}
 
             - name: Merge stage into prod
               run: |
@@ -155,6 +162,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                   ref: prod
+                  token: ${{ secrets.TOKEN_PAT }}
 
             - name: Run tests
               run: python -m unittest discover -s tests -v
