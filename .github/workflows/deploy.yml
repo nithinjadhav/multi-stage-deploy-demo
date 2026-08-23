@@ -74,7 +74,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Advance qa branch
         run: |
-           git fetch origin dev
+           git fetch origin qa
            git push origin --force-with-lease ${{ github.sha }}:refs/heads/qa
 
   stg:
@@ -97,7 +97,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Advance stg branch
         run: |
-           git fetch origin dev
+           git fetch origin stg
            git push origin --force-with-lease ${{ github.sha }}:refs/heads/stg
 
   prd:
@@ -120,5 +120,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Advance prd branch
         run: |
-            git fetch origin dev
+            git fetch origin prd
             git push origin --force-with-lease ${{ github.sha }}:refs/heads/prd
