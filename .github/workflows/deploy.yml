@@ -7,7 +7,8 @@ name: Deploy (dev → qa → stg → prd)
 # deployed commit, so dev/qa/stg/prd branches track what is live in each environment.
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -16,21 +17,19 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    #  steps:
-      #  - uses: actions/checkout@v4
-      #  - name: Set up .NET
-      #  uses: actions/setup-dotnet@v4
-      #   with:
-      #      dotnet-version: '10.0.x'
-      #  - name: Test
-      #   run: dotnet test backend/NjAutomation.sln -c Release
-      #  - name: Publish API
-      # run: dotnet publish backend/src/NjAutomation.Api/NjAutomation.Api.csproj -c Release -o publish
-      # - name: Upload artifact
-      #  uses: actions/upload-artifact@v4
-      #  with:
-      #    name: api
-      #    path: publish
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare artifact
+        run: |
+          # Replace these steps with your real build/publish commands.
+          # The workflow previously had commented-out .NET steps; keep or replace as needed.
+          mkdir -p publish
+          echo "placeholder artifact" > publish/README.txt
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api
+          path: publish
 
   dev:
     needs: build
@@ -38,15 +37,18 @@ jobs:
     environment: dev
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with: { name: api, path: publish }
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api
+          path: publish
       - name: Deploy to dev
-        run: echo "TODO deploy toDEV App Service. See docs/ci-cd.md for the azure/webapps-deploy wiring."
-        # - uses: azure/webapps-deploy@v3
-        #   with:
-        #     app-name: ${{ vars.AZURE_WEBAPP_NAME }}
-        #     publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        #     package: publish
+        run: |
+          echo "TODO: deploy to DEV App Service. See docs/ci-cd.md for the azure/webapps-deploy wiring."
+      - name: Configure git for branch update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Advance dev branch
         run: git push origin ${{ github.sha }}:refs/heads/dev
 
@@ -56,10 +58,18 @@ jobs:
     environment: qa
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with: { name: api, path: publish }
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api
+          path: publish
       - name: Deploy to qa
-        run: echo "TODO deploy toQA App Service."
+        run: |
+          echo "TODO: deploy to QA App Service."
+      - name: Configure git for branch update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Advance qa branch
         run: git push origin ${{ github.sha }}:refs/heads/qa
 
@@ -69,10 +79,18 @@ jobs:
     environment: stg
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with: { name: api, path: publish }
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api
+          path: publish
       - name: Deploy to stg
-        run: echo "TODO deploy toSTG App Service."
+        run: |
+          echo "TODO: deploy to STG App Service."
+      - name: Configure git for branch update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Advance stg branch
         run: git push origin ${{ github.sha }}:refs/heads/stg
 
@@ -82,9 +100,17 @@ jobs:
     environment: prd
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with: { name: api, path: publish }
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api
+          path: publish
       - name: Deploy to prd
-        run: echo "TODO deploy toPRD App Service."
+        run: |
+          echo "TODO: deploy to PRD App Service."
+      - name: Configure git for branch update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Advance prd branch
         run: git push origin ${{ github.sha }}:refs/heads/prd
