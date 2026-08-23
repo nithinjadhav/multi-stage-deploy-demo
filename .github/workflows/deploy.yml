@@ -50,7 +50,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Advance dev branch
-        run: git push origin ${{ github.sha }}:refs/heads/dev
+        run: git push origin --force-with-lease ${{ github.sha }}:refs/heads/dev
 
   qa:
     needs: dev
@@ -71,7 +71,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Advance qa branch
-        run: git push origin ${{ github.sha }}:refs/heads/qa
+        run: git push origin --force-with-lease ${{ github.sha }}:refs/heads/qa
 
   stg:
     needs: qa
@@ -92,7 +92,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Advance stg branch
-        run: git push origin ${{ github.sha }}:refs/heads/stg
+        run: git push origin --force-with-lease ${{ github.sha }}:refs/heads/stg
 
   prd:
     needs: stg
@@ -113,4 +113,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Advance prd branch
-        run: git push origin ${{ github.sha }}:refs/heads/prd
+        run: git push origin --force-with-lease ${{ github.sha }}:refs/heads/prd
