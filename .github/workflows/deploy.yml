@@ -1,177 +1,90 @@
-name: Multi-Stage Branch Deployment Pipeline
+name: Deploy (dev → qa → stg → prd)
 
+# One PR per change merges to main; this pipeline promotes that single build through
+# every environment in order. GitHub Environments dev/qa/stg/prd gate each stage:
+# add "Required reviewers" to qa/stg/prd (repo Settings → Environments) to pause for
+# approval before promoting. Each stage also advances its environment branch to the
+# deployed commit, so dev/qa/stg/prd branches track what is live in each environment.
 on:
-    push:
-        branches:
-            - main
-            - dev
-            - qa
-            - stage
-            - prod
+  push:
+    branches: [main]
+  workflow_dispatch:
 
-env:
-    ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
+permissions:
+  contents: write   # to advance the environment branches
 
 jobs:
-    promote-dev:
-        if: github.ref == 'refs/heads/main'
-        runs-on: ubuntu-latest
-        environment: dev
-        steps:
-            - name: Checkout repo
-              uses: actions/checkout@v5
-              with:
-                  fetch-depth: 0
-                  token: ${{ secrets.TOKEN_PAT }}
+  build:
+    runs-on: ubuntu-latest
+    #  steps:
+      #  - uses: actions/checkout@v4
+      #  - name: Set up .NET
+      #  uses: actions/setup-dotnet@v4
+      #   with:
+      #      dotnet-version: '10.0.x'
+      #  - name: Test
+      #   run: dotnet test backend/NjAutomation.sln -c Release
+      #  - name: Publish API
+      # run: dotnet publish backend/src/NjAutomation.Api/NjAutomation.Api.csproj -c Release -o publish
+      # - name: Upload artifact
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: api
+      #    path: publish
 
-            - name: Merge main into dev
-              run: |
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git fetch origin
-                  git checkout dev
-                  git merge --no-edit origin/main
-                  git push origin dev
+  dev:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: api, path: publish }
+      - name: Deploy to dev
+        run: echo "TODO deploy toDEV App Service. See docs/ci-cd.md for the azure/webapps-deploy wiring."
+        # - uses: azure/webapps-deploy@v3
+        #   with:
+        #     app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+        #     publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        #     package: publish
+      - name: Advance dev branch
+        run: git push origin ${{ github.sha }}:refs/heads/dev
 
-    deploy-dev:
-        if: github.ref == 'refs/heads/dev'
-        runs-on: ubuntu-latest
-        environment: dev
-        steps:
-            - name: Checkout dev branch
-              uses: actions/checkout@v5
-              with:
-                  ref: dev
-                  token: ${{ secrets.TOKEN_PAT }}
+  qa:
+    needs: dev
+    runs-on: ubuntu-latest
+    environment: qa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: api, path: publish }
+      - name: Deploy to qa
+        run: echo "TODO deploy toQA App Service."
+      - name: Advance qa branch
+        run: git push origin ${{ github.sha }}:refs/heads/qa
 
-            - name: Run tests
-              run: python -m unittest discover -s tests -v
+  stg:
+    needs: qa
+    runs-on: ubuntu-latest
+    environment: stg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: api, path: publish }
+      - name: Deploy to stg
+        run: echo "TODO deploy toSTG App Service."
+      - name: Advance stg branch
+        run: git push origin ${{ github.sha }}:refs/heads/stg
 
-            - name: Deploy to Dev
-              run: |
-                  echo "Deploying merged changes to Dev branch"
-                  echo "Using Dev URL: ${{ vars.API_URL }}"
-                  echo "Using Dev Token: ${{ secrets.DEPLOY_TOKEN }}"
-
-    promote-qa:
-        if: github.ref == 'refs/heads/dev'
-        needs: deploy-dev
-        runs-on: ubuntu-latest
-        environment: qa
-        steps:
-            - name: Checkout repo
-              uses: actions/checkout@v5
-              with:
-                  fetch-depth: 0
-                  token: ${{ secrets.TOKEN_PAT }}
-
-            - name: Merge dev into qa
-              run: |
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git fetch origin
-                  git checkout qa
-                  git merge --no-edit origin/dev
-                  git push origin qa
-
-    deploy-qa:
-        if: github.ref == 'refs/heads/qa'
-        runs-on: ubuntu-latest
-        environment: qa
-        steps:
-            - name: Checkout qa branch
-              uses: actions/checkout@v5
-              with:
-                  ref: qa
-                  token: ${{ secrets.TOKEN_PAT }}
-
-            - name: Run tests
-              run: python -m unittest discover -s tests -v
-
-            - name: Deploy to QA
-              run: |
-                  echo "Deploying merged changes to QA branch"
-                  echo "Using QA URL: ${{ vars.API_URL }}"
-                  echo "Using QA Token: ${{ secrets.DEPLOY_TOKEN }}"
-
-    promote-stage:
-        if: github.ref == 'refs/heads/qa'
-        needs: deploy-qa
-        runs-on: ubuntu-latest
-        environment: stage
-        steps:
-            - name: Checkout repo
-              uses: actions/checkout@v5
-              with:
-                  fetch-depth: 0
-                  token: ${{ secrets.TOKEN_PAT }}
-
-            - name: Merge qa into stage
-              run: |
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git fetch origin
-                  git checkout stage
-                  git merge --no-edit origin/qa
-                  git push origin stage
-
-    deploy-stage:
-        if: github.ref == 'refs/heads/stage'
-        runs-on: ubuntu-latest
-        environment: stage
-        steps:
-            - name: Checkout stage branch
-              uses: actions/checkout@v5
-              with:
-                  ref: stage
-                  token: ${{ secrets.TOKEN_PAT }}
-
-            - name: Run tests
-              run: python -m unittest discover -s tests -v
-
-            - name: Deploy to Stage
-              run: |
-                  echo "Deploying merged changes to Stage branch"
-                  echo "Using Stage URL: ${{ vars.API_URL }}"
-                  echo "Using Stage Token: ${{ secrets.DEPLOY_TOKEN }}"
-
-    promote-prod:
-        if: github.ref == 'refs/heads/stage'
-        needs: deploy-stage
-        runs-on: ubuntu-latest
-        environment: prod
-        steps:
-            - name: Checkout repo
-              uses: actions/checkout@v5
-              with:
-                  fetch-depth: 0
-                  token: ${{ secrets.TOKEN_PAT }}
-
-            - name: Merge stage into prod
-              run: |
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git fetch origin
-                  git checkout prod
-                  git merge --no-edit origin/stage
-                  git push origin prod
-
-    deploy-prod:
-        if: github.ref == 'refs/heads/prod'
-        runs-on: ubuntu-latest
-        environment: prod
-        steps:
-            - name: Checkout prod branch
-              uses: actions/checkout@v5
-              with:
-                  ref: prod
-                  token: ${{ secrets.TOKEN_PAT }}
-
-            - name: Run tests
-              run: python -m unittest discover -s tests -v
-
-            - name: Deploy to Prod
-              run: |
-                  echo "Deploying merged changes to Prod branch"
-                  echo "Using Prod URL: ${{ vars.API_URL }}"
-                  echo "Using Prod Token: ${{ secrets.DEPLOY_TOKEN }}"
+  prd:
+    needs: stg
+    runs-on: ubuntu-latest
+    environment: prd
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: api, path: publish }
+      - name: Deploy to prd
+        run: echo "TODO deploy toPRD App Service."
+      - name: Advance prd branch
+        run: git push origin ${{ github.sha }}:refs/heads/prd
